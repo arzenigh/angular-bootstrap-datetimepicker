@@ -142,7 +142,8 @@
         // View starts one year before the decade starts and ends one year after the decade ends
         // i.e. passing in a date of 1/1/2013 will give a range of 2009 to 2020
         // Truncate the last digit from the current year and subtract 1 to get the start of the decade
-        var startDecade = changeToBEYear((parseInt(selectedDate.year() / 10, 10) * 10))
+        var startDecade = (parseInt(selectedDate.year() / 10, 10) * 10)
+        var startDecadeDisplay = changeToBEYear(startDecade)
         var startDate = moment.utc(startOfDecade(milliseconds)).subtract(1, 'year').startOf('year')
 
         var yearFormat = 'YYYY'
@@ -154,7 +155,7 @@
           'nextView': configuration.minView === 'year' ? 'setTime' : 'month',
           'previousViewDate': new DateObject({
             utcDateValue: null,
-            display: startDecade + '-' + (startDecade + 9)
+            display: startDecadeDisplay + '-' + (startDecadeDisplay + 9)
           }),
           'leftDate': new DateObject({utcDateValue: moment.utc(startDate).subtract(9, 'year').valueOf()}),
           'rightDate': new DateObject({utcDateValue: moment.utc(startDate).add(11, 'year').valueOf()}),
@@ -163,10 +164,11 @@
 
         for (var i = 0; i < 12; i += 1) {
           var yearMoment = moment.utc(startDate).add(i, 'years')
+          var displayYear = shouldDisplayBEYear() ? changeToBEYear(yearMoment.year()) : yearMoment.format(yearFormat)
           var dateValue = {
             'active': yearMoment.format(yearFormat) === activeFormat,
             'current': yearMoment.format(yearFormat) === currentFormat,
-            'display': yearMoment.format(yearFormat),
+            'display': displayYear,
             'future': yearMoment.year() > startDecade + 9,
             'past': yearMoment.year() < startDecade,
             'utcDateValue': yearMoment.valueOf()

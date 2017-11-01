@@ -98,6 +98,10 @@
         if (viewName && (dateObject.utcDateValue > -Infinity) && dateObject.selectable && viewToModelFactory[viewName]) {
           var result = viewToModelFactory[viewName](dateObject.utcDateValue)
 
+          if (!result) {
+            return
+          }
+
           var weekDates = []
           if (result.weeks) {
             for (var i = 0; i < result.weeks.length; i += 1) {
@@ -121,12 +125,24 @@
         }
       }
 
+      function shouldDisplayBEYear () {
+        return moment.locale() === 'th'
+      }
+
+      function changeToBEYear (year) {
+        if (shouldDisplayBEYear()) {
+          return year + 543
+        }
+
+        return year
+      }
+
       function yearModelFactory (milliseconds) {
         var selectedDate = moment.utc(milliseconds).startOf('year')
         // View starts one year before the decade starts and ends one year after the decade ends
         // i.e. passing in a date of 1/1/2013 will give a range of 2009 to 2020
         // Truncate the last digit from the current year and subtract 1 to get the start of the decade
-        var startDecade = (parseInt(selectedDate.year() / 10, 10) * 10)
+        var startDecade = changeToBEYear((parseInt(selectedDate.year() / 10, 10) * 10))
         var startDate = moment.utc(startOfDecade(milliseconds)).subtract(1, 'year').startOf('year')
 
         var yearFormat = 'YYYY'
@@ -176,7 +192,7 @@
           'nextView': configuration.minView === 'month' ? 'setTime' : 'day',
           'previousViewDate': new DateObject({
             utcDateValue: previousViewDate.valueOf(),
-            display: startDate.format('YYYY')
+            display: changeToBEYear(startDate.year())
           }),
           'leftDate': new DateObject({utcDateValue: moment.utc(startDate).subtract(1, 'year').valueOf()}),
           'rightDate': new DateObject({utcDateValue: moment.utc(startDate).add(1, 'year').valueOf()}),
@@ -216,7 +232,7 @@
           'nextView': configuration.minView === 'day' ? 'setTime' : 'hour',
           'previousViewDate': new DateObject({
             utcDateValue: previousViewDate.valueOf(),
-            display: startOfMonth.format('YYYY-MMM')
+            display: changeToBEYear(startOfMonth.year()) + startOfMonth.format('-MMM')
           }),
           'leftDate': new DateObject({utcDateValue: moment.utc(startOfMonth).subtract(1, 'months').valueOf()}),
           'rightDate': new DateObject({utcDateValue: moment.utc(startOfMonth).add(1, 'months').valueOf()}),
@@ -262,7 +278,7 @@
           'nextView': configuration.minView === 'hour' ? 'setTime' : 'minute',
           'previousViewDate': new DateObject({
             utcDateValue: previousViewDate.valueOf(),
-            display: selectedDate.format('ll')
+            display: shouldDisplayBEYear() ? selectedDate.format('D MMM ') + changeToBEYear(selectedDate.year()) : selectedDate.format('ll')
           }),
           'leftDate': new DateObject({utcDateValue: moment.utc(selectedDate).subtract(1, 'days').valueOf()}),
           'rightDate': new DateObject({utcDateValue: moment.utc(selectedDate).add(1, 'days').valueOf()}),
@@ -298,7 +314,7 @@
           'nextView': 'setTime',
           'previousViewDate': new DateObject({
             utcDateValue: previousViewDate.valueOf(),
-            display: selectedDate.format('lll')
+            display: shouldDisplayBEYear() ? selectedDate.format('D MMM ') + changeToBEYear(selectedDate.year()) + selectedDate.format(' h:mm A') : selectedDate.format('lll')
           }),
           'leftDate': new DateObject({utcDateValue: moment.utc(selectedDate).subtract(1, 'hours').valueOf()}),
           'rightDate': new DateObject({utcDateValue: moment.utc(selectedDate).add(1, 'hours').valueOf()}),
@@ -349,7 +365,9 @@
 
         $scope.onSetTime({newDate: newDate, oldDate: oldDate})
 
-        return viewToModelFactory[configuration.startView](milliseconds)
+        if (!configuration.isHoldLastView) {
+          return viewToModelFactory[configuration.startView](milliseconds)
+        }
       }
 
       function $render () {
@@ -508,7 +526,8 @@
         'parseFormat',
         'renderOn',
         'startView',
-        'screenReader'
+        'screenReader',
+        'isHoldLastView'
       ]
 
       var invalidOptions = Object.keys(configuration).filter(function (key) {
